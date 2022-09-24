@@ -12,6 +12,9 @@
 #include <frc/DoubleSolenoid.h>
 #include <frc/PneumaticsControlModule.h>
 #include <frc/Solenoid.h>
+#include <frc/Timer.h>
+#include <cameraserver/CameraServer.h>
+
 /**
  * This is a demo program showing the use of the DifferentialDrive class.
  * Runs the motors with arcade steering.
@@ -40,7 +43,10 @@ class Robot : public frc::TimedRobot {
   // The robot's drive
   frc::DifferentialDrive m_drive{m_leftMotors, m_rightMotors};
 
+  frc::Timer m_ShootMotorTimer;
 
+   double prevY = 0.0;
+   double prevX = 0.0;
 
  public:
   void RobotInit() override {
@@ -48,37 +54,95 @@ class Robot : public frc::TimedRobot {
     // result in both sides moving forward. Depending on how your robot's
     // gearbox is constructed, you might have to invert the left side instead.
     m_rightMotors.SetInverted(true);
+    frc::CameraServer::StartAutomaticCapture();
   }
 
   void TeleopPeriodic() override {
     double const ShootingSpeed = 1.0;
     double const IntakeSpeed   = 0.8;
 
-    // Drive with arcade style
-    m_drive.ArcadeDrive(-m_stick.GetY(), m_stick.GetX());
+   {
+      double const accel = 0.1;
+      double apppliedY = 0.0;
+      double apppliedX = 0.0;
 
-    m_solenoidLift0.Set(m_stick.GetRawButton(3));
-    m_solenoidLift1.Set(m_stick.GetRawButton(3));
+      double y = -m_stick.GetY();
+      double x = m_stick.GetRawAxis(3);
+
+      if ( ( y * prevY ) > 0.0 )
+      {
+         if ( ( y - prevY ) > accel )
+         {
+            apppliedY = prevY + accel;
+         }
+         else
+         {
+            apppliedY = y;
+         }
+      }
+      else
+      {
+         if ( ( y - prevY ) < -accel )
+         {
+            apppliedY = prevY - accel;
+         }
+         else
+         {
+            apppliedY = y;
+         }
+      }
+
+      if ( ( x * prevX ) > 0.0 )
+      {
+         if ( ( x - prevX ) > accel )
+         {
+            apppliedX = prevX + accel;
+         }
+         else
+         {
+            apppliedX = x;
+         }
+      }
+      else
+      {
+         if ( ( x - prevX ) < -accel )
+         {
+            apppliedX = prevX - accel;
+         }
+         else
+         {
+            apppliedX = x;
+         }
+      }
+
+      m_drive.ArcadeDrive( apppliedY, apppliedX );
+
+      prevY = apppliedY;
+      prevX = apppliedX;
+   }
 
     // Lift Control
     if ( m_stick.GetRawButton( 7 ) ) 
     {
+      m_ShootMotorTimer.Start();
+
        m_solenoidLift0.Set( true );
        m_solenoidLift1.Set( true );
     } 
     else 
     {
+       m_ShootMotorTimer.Reset();
        m_solenoidLift0.Set( false );
        m_solenoidLift1.Set( false );
     }
 
     // Intake/Shooting Control
-    if ( m_stick.GetRawButton( 7 ) ) 
+    if ( m_ShootMotorTimer.Get() > (units::time::second_t)0.5 ) 
     {
        m_shoot0.Set( ShootingSpeed );
        m_shoot1.Set( -ShootingSpeed );
     } 
-    else if ( m_stick.GetRawButton( 3 ) )
+    else if ( m_stick.GetRawButton( 6 ) )
     {
        m_shoot0.Set( -IntakeSpeed );
        m_shoot1.Set( IntakeSpeed );
