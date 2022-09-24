@@ -51,24 +51,46 @@ class Robot : public frc::TimedRobot {
   }
 
   void TeleopPeriodic() override {
+    double const ShootingSpeed = 1.0;
+    double const IntakeSpeed   = 0.8;
+
     // Drive with arcade style
     m_drive.ArcadeDrive(-m_stick.GetY(), m_stick.GetX());
 
     m_solenoidLift0.Set(m_stick.GetRawButton(3));
     m_solenoidLift1.Set(m_stick.GetRawButton(3));
 
-    if (m_stick.GetRawButton(7)) 
+    // Lift Control
+    if ( m_stick.GetRawButton( 7 ) ) 
     {
-       m_shoot0.Set(0.8);
-       m_shoot1.Set(-0.8);
+       m_solenoidLift0.Set( true );
+       m_solenoidLift1.Set( true );
     } 
     else 
     {
-       m_shoot0.Set(0.0);
-       m_shoot1.Set(0.0);
+       m_solenoidLift0.Set( false );
+       m_solenoidLift1.Set( false );
     }
 
-    if (m_stick.GetRawButton(8)) 
+    // Intake/Shooting Control
+    if ( m_stick.GetRawButton( 7 ) ) 
+    {
+       m_shoot0.Set( ShootingSpeed );
+       m_shoot1.Set( -ShootingSpeed );
+    } 
+    else if ( m_stick.GetRawButton( 3 ) )
+    {
+       m_shoot0.Set( -IntakeSpeed );
+       m_shoot1.Set( IntakeSpeed );
+    }
+    else
+    {
+       m_shoot0.Set( 0.0 );
+       m_shoot1.Set( 0.0 );
+    }
+
+    // Ball Pusher Control
+    if ( m_stick.GetRawButton( 8 ) ) 
     {
        m_solenoidBallPusher.Set(frc::DoubleSolenoid::kReverse);
     } 
